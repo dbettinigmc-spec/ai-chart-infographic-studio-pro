@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Keyword Explorer AI - Material Design</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#e3f2fd', 100: '#bbdefb', 500: '#2196f3',
+                            600: '#1e88e5', 700: '#1976d2',
+                        },
+                        secondary: {
+                            100: '#f3e8ff', 700: '#7e22ce',
+                        }
+                    },
+                    fontFamily: { sans: ['Roboto', 'sans-serif'], }
+                }
+            }
+        }
+    </script>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet" />
+
+    <style>
+        body { font-family: 'Roboto', sans-serif; transition: background-color 0.3s, color 0.3s; }
+        .material-shadow { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
+        .material-input { transition: all 0.2s ease; }
+        .material-input:focus { border-color: #2196f3; box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.2); outline: none; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .dark ::-webkit-scrollbar-thumb { background: #475569; }
+        
+        .spinner {
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top: 3px solid white;
+            width: 20px; height: 20px;
+            animation: spin 1s linear infinite;
+            display: none;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 dark:bg-gray-900 dark:text-gray-100 min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-primary-600 text-white shadow-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-3xl">hub</span>
+                <h1 class="text-xl font-medium tracking-wide">Keyword Explorer AI</h1>
+            </div>
+            
+            <div class="flex items-center gap-4">
+                <button id="exportBtn" class="hidden md:flex items-center gap-1 hover:bg-primary-700 px-3 py-1.5 rounded-md transition" title="Esporta dati">
+                    <span class="material-symbols-outlined text-sm">download</span>
+                    <span class="text-sm font-medium">Esporta JSON</span>
+                </button>
+                <label class="hidden md:flex items-center gap-1 hover:bg-primary-700 px-3 py-1.5 rounded-md transition cursor-pointer" title="Importa dati">
+                    <span class="material-symbols-outlined text-sm">upload</span>
+                    <span class="text-sm font-medium">Importa JSON</span>
+                    <input type="file" id="importFile" accept=".json" class="hidden">
+                </label>
+                <button id="themeToggle" class="p-2 rounded-full hover:bg-primary-700 transition flex items-center justify-center">
+                    <span class="material-symbols-outlined" id="themeIcon">dark_mode</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-6">
+
+        <div class="bg-purple-50 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-800 rounded-lg p-4 flex items-start gap-3">
+            <span class="material-symbols-outlined text-purple-600 dark:text-purple-400 mt-0.5">auto_awesome</span>
+            <div class="text-sm text-purple-800 dark:text-purple-200">
+                <p><strong>Motore Avanzato Attivo:</strong> Ora estrae <strong>centinaia di parole chiave</strong> unendo l'AI Semantica (fino a 100 concetti) a un "Alphabet Soup" completo (aggiungendo prefissi, suffissi dalla A alla Z e domande su Google Suggest). I volumi sono simulati con un algoritmo di precisione realistico basato sulla lunghezza della coda.</p>
+            </div>
+        </div>
+
+        <!-- Search Controls -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl material-shadow p-6">
+            <form id="searchForm" class="flex flex-col md:flex-row gap-4 items-end">
+                <div class="w-full md:flex-1">
+                    <label for="keywordInput" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Parola Chiave Iniziale</label>
+                    <input type="text" id="keywordInput" placeholder="Es. edicola online..." required
+                           class="material-input w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                </div>
+
+                <div class="w-full md:w-40">
+                    <label for="langSelect" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Lingua</label>
+                    <select id="langSelect" class="material-input w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                        <option value="it">Italiano (IT)</option>
+                        <option value="en">Inglese (EN)</option>
+                        <option value="es">Spagnolo (ES)</option>
+                        <option value="fr">Francese (FR)</option>
+                    </select>
+                </div>
+
+                <div class="w-full md:w-40">
+                    <label for="countrySelect" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Paese</label>
+                    <select id="countrySelect" class="material-input w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                        <option value="it">Italia (IT)</option>
+                        <option value="us">Stati Uniti (US)</option>
+                        <option value="uk">Regno Unito (UK)</option>
+                        <option value="es">Spagna (ES)</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="w-full md:w-auto px-6 py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition shadow-md hover:shadow-lg flex items-center justify-center gap-2">
+                    <span id="btnText">Genera Idee</span>
+                    <div id="loadingSpinner" class="spinner"></div>
+                </button>
+            </div>
+            
+            <!-- Opzione Estrazione Profonda -->
+            <div class="mt-4 flex items-center gap-2">
+                <input type="checkbox" id="deepModeCheck" class="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500 cursor-pointer">
+                <label for="deepModeCheck" class="text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
+                    <strong>Estrazione Profonda</strong> (Include A-Z, Domande: Come, Quando, Perché e Preposizioni: Vs, Tra, Per... <em>Richiede ~20 sec</em>)
+                </label>
+            </div>
+        </form>
+    </div>
+
+    <!-- Mobile Controls -->
+        <div class="flex md:hidden gap-4">
+            <button id="exportBtnMobile" class="flex-1 flex items-center justify-center gap-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 py-2 rounded-lg transition">
+                <span class="material-symbols-outlined text-sm">download</span> Esporta JSON
+            </button>
+            <label class="flex-1 flex items-center justify-center gap-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 py-2 rounded-lg transition cursor-pointer">
+                <span class="material-symbols-outlined text-sm">upload</span> Importa JSON
+                <input type="file" id="importFileMobile" accept=".json" class="hidden">
+            </label>
+        </div>
+
+        <!-- Data Table -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl material-shadow overflow-hidden flex-grow flex flex-col">
+            <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50">
+                <h2 class="text-lg font-medium">Risultati</h2>
+                <span id="resultCount" class="text-sm text-gray-500 dark:text-gray-400">0 parole trovate</span>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-gray-100 dark:bg-gray-700/50 text-gray-600 dark:text-gray-300 text-sm uppercase tracking-wider">
+                            <th class="px-6 py-4 font-medium border-b dark:border-gray-700">Parola Chiave</th>
+                            <th class="px-6 py-4 font-medium border-b dark:border-gray-700 text-center">Tipologia</th>
+                            <th class="px-6 py-4 font-medium border-b dark:border-gray-700 text-right">Volume</th>
+                            <th class="px-6 py-4 font-medium border-b dark:border-gray-700 text-right">CPC St.</th>
+                            <th class="px-6 py-4 font-medium border-b dark:border-gray-700 text-center">Difficoltà</th>
+                        </tr>
+                    </thead>
+                    <tbody id="resultsBody" class="divide-y divide-gray-200 dark:divide-gray-700 text-gray-800 dark:text-gray-200">
+                        <tr id="emptyState">
+                            <td colspan="5" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                                <span class="material-symbols-outlined text-4xl mb-2 opacity-50">magic_button</span>
+                                <p>Inserisci un concetto (es. "assicurazione auto" o "edicola online") per scovare le migliori parole chiave.</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        const apiKey = ""; // La chiave API viene iniettata automaticamente dall'ambiente
+
+        // --- TEMA ---
+        const htmlEl = document.documentElement;
+        const themeToggle = document.getElementById('themeToggle');
+        const themeIcon = document.getElementById('themeIcon');
+
+        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            htmlEl.classList.add('dark'); themeIcon.textContent = 'light_mode';
+        } else {
+            htmlEl.classList.remove('dark'); themeIcon.textContent = 'dark_mode';
+        }
+
+        themeToggle.addEventListener('click', () => {
+            htmlEl.classList.toggle('dark');
+            if (htmlEl.classList.contains('dark')) {
+                localStorage.theme = 'dark'; themeIcon.textContent = 'light_mode';
+            } else {
+                localStorage.theme = 'light'; themeIcon.textContent = 'dark_mode';
+            }
+        });
+
+        // --- FETCH CON BACKOFF (Anti-Rate Limit) ---
+        async function fetchWithBackoff(url, options, retries = 5) {
+            const delays = [1000, 2000, 4000, 8000, 16000];
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const response = await fetch(url, options);
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                    return await response.json();
+                } catch (err) {
+                    if (i === retries - 1) throw err;
+                    await new Promise(res => setTimeout(res, delays[i]));
+                }
+            }
+        }
+
+        // --- METRICHE SIMULATE (Algoritmo di Precisione Realistica) ---
+        function generateSimulatedMetrics(keyword) {
+            let hash = 0;
+            for (let i = 0; i < keyword.length; i++) {
+                hash = ((hash << 5) - hash) + keyword.charCodeAt(i);
+                hash |= 0;
+            }
+            hash = Math.abs(hash);
+
+            // Contiamo le parole: le long tail hanno volumi più bassi
+            const wordsCount = keyword.trim().split(/\s+/).length;
+            
+            // Volumi drasticamente ridotti per maggiore realismo
+            let baseMin, baseMax;
+            if (wordsCount === 1) { baseMin = 1200; baseMax = 35000; }
+            else if (wordsCount === 2) { baseMin = 300; baseMax = 6500; }
+            else if (wordsCount === 3) { baseMin = 50; baseMax = 800; }
+            else if (wordsCount === 4) { baseMin = 10; baseMax = 150; }
+            else { baseMin = 0; baseMax = 40; }
+
+            // Generiamo un numero deterministico all'interno del range
+            let rawVolume = baseMin + (hash % (baseMax - baseMin));
+
+            // Arrotondamento organico (come in strumenti reali)
+            let volume;
+            if (rawVolume > 10000) volume = Math.round(rawVolume / 100) * 100;
+            else if (rawVolume > 1000) volume = Math.round(rawVolume / 10) * 10;
+            else volume = Math.round(rawVolume / 10) * 10;
+
+            if (volume <= 0) volume = 10; // Volume minimo garantito
+
+            // CPC deterministico (le long tail specifiche costano proporzionalmente meno)
+            const cpcRaw = ((hash % 1200) / 100 + 0.05);
+            const cpc = (cpcRaw / Math.max(1, (wordsCount * 0.7))).toFixed(2);
+            
+            // Difficoltà deterministica calcolata su 100 (lunghezza maggiore = meno difficile)
+            let difficultyScore = Math.max(1, Math.min(99, (hash % 100) - (wordsCount * 6) + 20));
+            
+            let diffLabel, diffClass;
+            if (difficultyScore <= 33) {
+                diffLabel = `Bassa (${difficultyScore}/100)`;
+                diffClass = "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400";
+            } else if (difficultyScore <= 66) {
+                diffLabel = `Media (${difficultyScore}/100)`;
+                diffClass = "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400";
+            } else {
+                diffLabel = `Alta (${difficultyScore}/100)`;
+                diffClass = "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400";
+            }
+
+            return {
+                volume: volume.toLocaleString('it-IT'),
+                numericVolume: volume,
+                cpc: `€ ${cpc}`,
+                difficulty: diffLabel,
+                difficultyClass: diffClass
+            };
+        }
+
+        // --- MOTORI DI RICERCA DATI ---
+
+        // 1. Google Autocomplete (Alphabet Soup ESTESO: Prefissi, Suffissi, Domande)
+        async function getAutocompleteKeywords(seed, lang, country, isDeep) {
+            let queries = [seed];
+            
+            if (isDeep) {
+                const alphabet = 'abcdefghijklmnopqrstuvwxyz'.split('');
+                const questionsIT = ['come', 'cosa', 'dove', 'quando', 'perché', 'chi', 'quale', 'miglior'];
+                const questionsEN = ['how', 'what', 'where', 'when', 'why', 'who', 'which', 'best'];
+                const prepIT = ['tra', 'per', 'con', 'vs', 'senza', 'di', 'a', 'da'];
+                const prepEN = ['between', 'for', 'with', 'vs', 'without', 'of', 'to', 'from'];
+                
+                const questions = (lang === 'it') ? questionsIT : questionsEN;
+                const prepositions = (lang === 'it') ? prepIT : prepEN;
+
+                // Suffissi: "keyword a"
+                alphabet.forEach(letter => queries.push(`${seed} ${letter}`));
+                // Prefissi: "a keyword"
+                alphabet.forEach(letter => queries.push(`${letter} ${seed}`));
+                // Domande: "come keyword"
+                questions.forEach(q => queries.push(`${q} ${seed}`));
+                // Preposizioni (dopo): "keyword con", "keyword vs"
+                prepositions.forEach(p => queries.push(`${seed} ${p}`));
+                // Preposizioni (prima): "tra keyword", "per keyword"
+                prepositions.forEach(p => queries.push(`${p} ${seed}`));
+            }
+
+            let results = [];
+            
+            // Effettuiamo le chiamate a blocchi (batch)
+            const batchSize = isDeep ? 6 : 2; // Ridotto in modalità deep per non bloccare il proxy
+            for (let i = 0; i < queries.length; i += batchSize) {
+                const batch = queries.slice(i, i + batchSize);
+                const fetchPromises = batch.map(async (query) => {
+                    const encodedQuery = encodeURIComponent(query);
+                    const targetUrl = `http://suggestqueries.google.com/complete/search?client=firefox&hl=${lang}&gl=${country}&q=${encodedQuery}`;
+                    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+
+                    try {
+                        const response = await fetch(proxyUrl);
+                        if (!response.ok) return;
+                        const data = await response.json();
+                        const parsed = JSON.parse(data.contents);
+                        if (parsed && parsed[1]) {
+                            parsed[1].forEach(kw => results.push({ keyword: kw.toLowerCase(), source: 'Autocompletamento' }));
+                        }
+                    } catch (e) { /* silenzioso se una singola query fallisce */ }
+                });
+                
+                await Promise.all(fetchPromises);
+                await new Promise(r => setTimeout(r, 200)); // Piccola pausa
+            }
+
+            return results;
+        }
+
+        // 2. AI Semantica (Gemini) o Fallback su Datamuse
+        async function getSemanticKeywords(seed, lang, country) {
+            let results = [];
+            
+            try {
+                if (apiKey !== undefined) {
+                    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+                    const prompt = `Genera un elenco massiccio di almeno 50-80 parole chiave SEO correlate semanticamente a "${seed}" per lingua "${lang}" e paese "${country}". Includi sinonimi, varianti, intenti correlati, domande frequenti e concetti affini (es. per "edicola online" includi "edicola digitale", "giornali sul web", "leggere quotidiani tablet" ecc). Restituisci SOLO un array JSON di stringhe, senza nient'altro, no markdown.`;
+                    
+                    const data = await fetchWithBackoff(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{ parts: [{ text: prompt }] }],
+                            generationConfig: {
+                                responseMimeType: "application/json",
+                                responseSchema: { type: "ARRAY", items: { type: "STRING" } }
+                            }
+                        })
+                    });
+                    
+                    if (data && data.candidates) {
+                        const words = JSON.parse(data.candidates[0].content.parts[0].text);
+                        words.forEach(w => results.push({ keyword: w.toLowerCase(), source: 'Correlata Semantica' }));
+                        return results;
+                    }
+                }
+            } catch (error) {
+                console.log("Fallback all'API semantica Datamuse...");
+            }
+
+            try {
+                let langParam = lang === 'it' ? '&v=it' : (lang === 'es' ? '&v=es' : ''); 
+                const res = await fetch(`https://api.datamuse.com/words?ml=${encodeURIComponent(seed)}${langParam}&max=80`);
+                const data = await res.json();
+                data.forEach(item => {
+                    results.push({ keyword: item.word.toLowerCase(), source: 'Correlata Semantica' });
+                });
+            } catch (error) {
+                console.error("Errore Datamuse:", error);
+            }
+
+            return results;
+        }
+
+        // --- LOGICA PRINCIPALE ---
+        let currentData = [];
+        const searchForm = document.getElementById('searchForm');
+        const btnText = document.getElementById('btnText');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        const resultsBody = document.getElementById('resultsBody');
+        const resultCount = document.getElementById('resultCount');
+
+        function renderTable(data) {
+            resultsBody.innerHTML = '';
+            
+            if (data.length === 0) {
+                resultsBody.innerHTML = `<tr><td colspan="5" class="px-6 py-12 text-center text-gray-500">Nessun risultato trovato.</td></tr>`;
+                resultCount.textContent = '0 parole trovate';
+                return;
+            }
+
+            data.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-gray-50 dark:hover:bg-gray-700/50 transition duration-150";
+                
+                // Ricostruiamo classi colori se assenti dal JSON importato
+                let diffClass = item.difficultyClass;
+                if (!diffClass) {
+                     if(item.difficulty === 'Bassa') diffClass = "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400";
+                     else if(item.difficulty === 'Media') diffClass = "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400";
+                     else diffClass = "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400";
+                }
+
+                // Stile tipologia
+                const typeStyle = item.source === 'Correlata Semantica' 
+                    ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 border border-purple-200 dark:border-purple-700'
+                    : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 border border-blue-200 dark:border-blue-700';
+                
+                const typeIcon = item.source === 'Correlata Semantica' ? 'psychology' : 'keyboard';
+
+                tr.innerHTML = `
+                    <td class="px-6 py-4 border-b dark:border-gray-700 font-medium">${item.keyword}</td>
+                    <td class="px-6 py-4 border-b dark:border-gray-700 text-center">
+                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium ${typeStyle}">
+                            <span class="material-symbols-outlined text-[14px]">${typeIcon}</span>
+                            ${item.source}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 border-b dark:border-gray-700 text-right">${item.volume}</td>
+                    <td class="px-6 py-4 border-b dark:border-gray-700 text-right text-gray-600 dark:text-gray-400">${item.cpc}</td>
+                    <td class="px-6 py-4 border-b dark:border-gray-700 text-center">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${diffClass}">
+                            ${item.difficulty}
+                        </span>
+                    </td>
+                `;
+                resultsBody.appendChild(tr);
+            });
+
+            resultCount.textContent = `${data.length} parole trovate`;
+        }
+
+        searchForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const keyword = document.getElementById('keywordInput').value.trim();
+            const lang = document.getElementById('langSelect').value;
+            const country = document.getElementById('countrySelect').value;
+            const isDeep = document.getElementById('deepModeCheck').checked;
+            if (!keyword) return;
+
+            btnText.textContent = isDeep ? "Estrazione Profonda (20s)..." : "Analisi Veloce...";
+            loadingSpinner.style.display = "block";
+            searchForm.querySelector('button[type="submit"]').disabled = true;
+
+            try {
+                const [autoData, semanticData] = await Promise.all([
+                    getAutocompleteKeywords(keyword, lang, country, isDeep),
+                    getSemanticKeywords(keyword, lang, country)
+                ]);
+
+                const allResults = [...semanticData, ...autoData];
+                
+                const uniqueMap = new Map();
+                allResults.forEach(item => {
+                    if (!uniqueMap.has(item.keyword) || item.source === 'Correlata Semantica') {
+                        uniqueMap.set(item.keyword, item);
+                    }
+                });
+
+                currentData = Array.from(uniqueMap.values()).map(item => {
+                    const metrics = generateSimulatedMetrics(item.keyword);
+                    return {
+                        keyword: item.keyword,
+                        source: item.source,
+                        volume: metrics.volume,
+                        numericVolume: metrics.numericVolume,
+                        cpc: metrics.cpc,
+                        difficulty: metrics.difficulty,
+                        difficultyClass: metrics.difficultyClass
+                    };
+                });
+
+                // Ordina per Volume numerico decrescente per priorità
+                currentData.sort((a, b) => {
+                    return b.numericVolume - a.numericVolume;
+                });
+
+                renderTable(currentData);
+            } catch (err) {
+                console.error("Errore generico:", err);
+                alert("Si è verificato un errore. Riprova tra qualche istante.");
+            } finally {
+                btnText.textContent = "Genera Idee";
+                loadingSpinner.style.display = "none";
+                searchForm.querySelector('button[type="submit"]').disabled = false;
+            }
+        });
+
+        // --- IMPORT / EXPORT JSON ---
+        function handleExport() {
+            if (currentData.length === 0) return alert("Nessun dato da esportare.");
+            const blob = new Blob([JSON.stringify(currentData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `keywords_${currentData[0]?.keyword.replace(/\s+/g, '_') || 'export'}.json`;
+            document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+        }
+
+        function handleImport(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                try {
+                    const imported = JSON.parse(evt.target.result);
+                    if (Array.isArray(imported)) {
+                        currentData = imported; renderTable(currentData); e.target.value = ''; alert("Dati caricati!");
+                    }
+                } catch (err) {
+                    alert("Errore file JSON.");
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        document.getElementById('exportBtn').addEventListener('click', handleExport);
+        document.getElementById('exportBtnMobile').addEventListener('click', handleExport);
+        document.getElementById('importFile').addEventListener('change', handleImport);
+        document.getElementById('importFileMobile').addEventListener('change', handleImport);
+
+    </script>
+</body>
+</html>
