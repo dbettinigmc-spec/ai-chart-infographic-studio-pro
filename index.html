@@ -1,528 +1,558 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="it" class="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Keyword Explorer AI - Material Design</title>
-    
-    <!-- Tailwind CSS -->
+    <title>AI Studio Pro: Charts & Infographics</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    
     <script>
         tailwind.config = {
             darkMode: 'class',
             theme: {
                 extend: {
                     colors: {
-                        primary: {
-                            50: '#e3f2fd', 100: '#bbdefb', 500: '#2196f3',
-                            600: '#1e88e5', 700: '#1976d2',
-                        },
-                        secondary: {
-                            100: '#f3e8ff', 700: '#7e22ce',
-                        }
+                        primary: { 50: '#eff6ff', 100: '#dbeafe', 500: '#3b82f6', 600: '#2563eb', 900: '#1e3a8a' },
+                        surface: { light: '#ffffff', dark: '#1e293b', darker: '#0f172a' }
                     },
-                    fontFamily: { sans: ['Roboto', 'sans-serif'], }
+                    borderRadius: { 'xl': '1rem', '2xl': '1.5rem', '3xl': '2rem' },
+                    fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+                    boxShadow: { 'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)' }
                 }
             }
         }
     </script>
-
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet" />
-
     <style>
-        body { font-family: 'Roboto', sans-serif; transition: background-color 0.3s, color 0.3s; }
-        .material-shadow { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
-        .material-input { transition: all 0.2s ease; }
-        .material-input:focus { border-color: #2196f3; box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.2); outline: none; }
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         .dark ::-webkit-scrollbar-thumb { background: #475569; }
+        body { transition: background-color 0.3s ease, color 0.3s ease; }
         
-        .spinner {
+        .tab-btn.active { border-bottom: 2px solid #3b82f6; color: #2563eb; font-weight: 600; }
+        .dark .tab-btn.active { color: #60a5fa; border-bottom-color: #60a5fa; }
+        
+        .mode-btn.active { background-color: #1e293b; color: white; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+        .dark .mode-btn.active { background-color: #3b82f6; color: white; }
+
+        .loader-ring {
             border: 3px solid rgba(255,255,255,0.3);
-            border-radius: 50%;
             border-top: 3px solid white;
-            width: 20px; height: 20px;
+            border-radius: 50%;
+            width: 18px; height: 18px;
             animation: spin 1s linear infinite;
-            display: none;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-800 dark:bg-gray-900 dark:text-gray-100 min-h-screen flex flex-col">
+<body class="bg-slate-50 dark:bg-surface-darker text-slate-800 dark:text-slate-200 min-h-screen flex flex-col font-sans">
 
-    <!-- Header -->
-    <header class="bg-primary-600 text-white shadow-md sticky top-0 z-50">
+    <div id="toast-container" class="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 flex flex-col gap-2 w-full max-w-md px-4 pointer-events-none"></div>
+
+    <header class="sticky top-0 z-40 bg-white/80 dark:bg-surface-dark/80 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800 shadow-sm">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-            <div class="flex items-center gap-2">
-                <span class="material-symbols-outlined text-3xl">hub</span>
-                <h1 class="text-xl font-medium tracking-wide">Keyword Explorer AI</h1>
+            <div class="flex items-center gap-3">
+                <div class="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl text-white shadow-md">
+                    <i data-lucide="layers" class="w-5 h-5"></i>
+                </div>
+                <h1 class="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
+                    AI Studio <span class="text-primary-600 dark:text-primary-400">Pro</span>
+                </h1>
             </div>
             
-            <div class="flex items-center gap-4">
-                <button id="exportBtn" class="hidden md:flex items-center gap-1 hover:bg-primary-700 px-3 py-1.5 rounded-md transition" title="Esporta dati">
-                    <span class="material-symbols-outlined text-sm">download</span>
-                    <span class="text-sm font-medium">Esporta JSON</span>
+            <div class="hidden md:flex bg-slate-200 dark:bg-slate-800 p-1 rounded-xl">
+                <button onclick="switchMode('charts')" id="mode-charts-btn" class="mode-btn active px-4 py-1.5 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 transition-all flex items-center gap-2">
+                    <i data-lucide="pie-chart" class="w-4 h-4"></i> Grafici Web HTML
                 </button>
-                <label class="hidden md:flex items-center gap-1 hover:bg-primary-700 px-3 py-1.5 rounded-md transition cursor-pointer" title="Importa dati">
-                    <span class="material-symbols-outlined text-sm">upload</span>
-                    <span class="text-sm font-medium">Importa JSON</span>
-                    <input type="file" id="importFile" accept=".json" class="hidden">
-                </label>
-                <button id="themeToggle" class="p-2 rounded-full hover:bg-primary-700 transition flex items-center justify-center">
-                    <span class="material-symbols-outlined" id="themeIcon">dark_mode</span>
+                <button onclick="switchMode('infographics')" id="mode-info-btn" class="mode-btn px-4 py-1.5 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 transition-all flex items-center gap-2">
+                    <i data-lucide="image" class="w-4 h-4"></i> Infografiche Immagine
                 </button>
             </div>
+
+            <div class="flex items-center gap-2">
+                <button onclick="toggleTheme()" class="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-600 dark:text-slate-300">
+                    <i data-lucide="moon" class="w-5 h-5 dark:hidden"></i>
+                    <i data-lucide="sun" class="w-5 h-5 hidden dark:block"></i>
+                </button>
+            </div>
+        </div>
+        
+        <div class="md:hidden flex bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
+            <button onclick="switchMode('charts')" id="mode-charts-btn-mob" class="flex-1 py-3 text-sm font-bold text-primary-600 border-b-2 border-primary-600">Grafici Web</button>
+            <button onclick="switchMode('infographics')" id="mode-info-btn-mob" class="flex-1 py-3 text-sm font-bold text-slate-500 border-b-2 border-transparent">Infografiche</button>
         </div>
     </header>
 
-    <!-- Main Content -->
-    <main class="flex-grow max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-6">
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        <div id="wrapper-charts" class="grid grid-cols-1 lg:grid-cols-12 gap-8 h-full">
+            
+            <div class="lg:col-span-5 flex flex-col gap-6">
+                <div class="bg-white dark:bg-surface-dark rounded-3xl shadow-soft border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col">
+                    <div class="flex border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+                        <button onclick="switchChartTab('data')" id="tab-data" class="tab-btn active flex-1 py-3 text-sm flex items-center justify-center gap-2">
+                            <i data-lucide="database" class="w-4 h-4"></i> Dati (CSV)
+                        </button>
+                        <button onclick="switchChartTab('settings')" id="tab-settings" class="tab-btn flex-1 py-3 text-sm flex items-center justify-center gap-2">
+                            <i data-lucide="sliders" class="w-4 h-4"></i> Impostazioni Grafico
+                        </button>
+                    </div>
 
-        <div class="bg-purple-50 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-800 rounded-lg p-4 flex items-start gap-3">
-            <span class="material-symbols-outlined text-purple-600 dark:text-purple-400 mt-0.5">auto_awesome</span>
-            <div class="text-sm text-purple-800 dark:text-purple-200">
-                <p><strong>Motore Avanzato Attivo:</strong> Ora estrae <strong>centinaia di parole chiave</strong> unendo l'AI Semantica (fino a 100 concetti) a un "Alphabet Soup" completo (aggiungendo prefissi, suffissi dalla A alla Z e domande su Google Suggest). I volumi sono simulati con un algoritmo di precisione realistico basato sulla lunghezza della coda.</p>
-            </div>
-        </div>
+                    <div id="panel-data" class="p-6 flex flex-col gap-4">
+                        <div class="flex justify-between items-center">
+                            <label class="text-sm font-bold text-slate-700 dark:text-slate-200">Inserisci Dati</label>
+                            <div class="flex gap-2">
+                                <button onclick="loadDemo('bar')" class="text-xs px-2 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 rounded text-slate-600 dark:text-slate-300">Bar Demo</button>
+                                <button onclick="loadDemo('scatter')" class="text-xs px-2 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 rounded text-slate-600 dark:text-slate-300">Scatter Demo</button>
+                            </div>
+                        </div>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">Incolla CSV o testo libero da elaborare con IA.</p>
+                        <textarea id="data-input" rows="8" class="w-full bg-slate-50 dark:bg-surface-darker border border-slate-200 dark:border-slate-700 rounded-xl p-3 focus:ring-2 focus:ring-primary-500 outline-none text-sm font-mono text-slate-700 dark:text-slate-300 whitespace-pre" placeholder="Mese,Vendite\nGen,100\nFeb,120"></textarea>
+                        
+                        <button onclick="formatDataWithAI()" id="ai-format-btn" class="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-2.5 rounded-xl font-semibold shadow-md active:scale-95 transition-transform">
+                            <i data-lucide="sparkles" class="w-4 h-4"></i>
+                            <span id="ai-format-text">Estrai Dati con IA</span>
+                            <div id="ai-loader" class="loader-ring hidden"></div>
+                        </button>
+                    </div>
 
-        <!-- Search Controls -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl material-shadow p-6">
-            <form id="searchForm" class="flex flex-col md:flex-row gap-4 items-end">
-                <div class="w-full md:flex-1">
-                    <label for="keywordInput" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Parola Chiave Iniziale</label>
-                    <input type="text" id="keywordInput" placeholder="Es. edicola online..." required
-                           class="material-input w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                    <div id="panel-settings" class="p-6 hidden flex-col gap-5">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-1.5">Tipo di Grafico</label>
+                            <select id="chart-type" onchange="generateSnippet()" class="w-full bg-slate-50 dark:bg-surface-darker border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+                                <option value="bar">A Barre (Bar Chart)</option>
+                                <option value="line">A Linee (Line Chart)</option>
+                                <option value="pie">A Torta (Pie Chart)</option>
+                                <option value="doughnut">Ciambella (Doughnut)</option>
+                                <option value="radar">Radar</option>
+                                <option value="polarArea">Area Polare</option>
+                                <option value="scatter">Dispersione (Scatter)</option>
+                            </select>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 mb-1">Titolo Grafico</label>
+                                <input type="text" id="chart-title" value="Il mio Grafico Interattivo" oninput="generateSnippet()" class="w-full bg-slate-50 dark:bg-surface-darker border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 text-sm dark:text-white outline-none focus:ring-2 focus:ring-primary-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 mb-1">Sottotitolo</label>
+                                <input type="text" id="chart-subtitle" value="Dati aggiornati" oninput="generateSnippet()" class="w-full bg-slate-50 dark:bg-surface-darker border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 text-sm dark:text-white outline-none focus:ring-2 focus:ring-primary-500">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-1.5">Stile e Colori</label>
+                            <select id="chart-palette" onchange="handlePaletteChange()" class="w-full bg-slate-50 dark:bg-surface-darker border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 mb-2">
+                                <option value="modern">Modern Tech (Blu/Indaco)</option>
+                                <option value="sunset">Sunset (Arancio/Rosso/Giallo)</option>
+                                <option value="emerald">Natura (Verdi)</option>
+                                <option value="pastel">Pastello (Multicolore delicato)</option>
+                                <option value="corporate">Corporate (Blu Avio/Grigi)</option>
+                                <option value="custom">✨ Palette Personalizzata</option>
+                            </select>
+
+                            <div id="custom-palette-container" class="hidden mb-3">
+                                <label class="block text-xs font-bold text-slate-500 mb-1">Colori (Separati da virgola)</label>
+                                <input type="text" id="custom-palette-input" value="#ff595e, #ffca3a, #8ac926, #1982c4, #6a4c93" oninput="generateSnippet()" class="w-full bg-slate-50 dark:bg-surface-darker border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 text-sm font-mono text-xs focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Es: #ff0000, blue, #00ff00...">
+                            </div>
+
+                            <div class="flex items-center gap-6 mt-2">
+                                <label class="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300 cursor-pointer">
+                                    <input type="checkbox" id="chart-fill" checked onchange="generateSnippet()" class="w-4 h-4 text-primary-600 rounded"> Riempimento
+                                </label>
+                                <label class="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300 cursor-pointer">
+                                    <input type="checkbox" id="chart-smooth" checked onchange="generateSnippet()" class="w-4 h-4 text-primary-600 rounded"> Linee Curve
+                                </label>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="w-full md:w-40">
-                    <label for="langSelect" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Lingua</label>
-                    <select id="langSelect" class="material-input w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
-                        <option value="it">Italiano (IT)</option>
-                        <option value="en">Inglese (EN)</option>
-                        <option value="es">Spagnolo (ES)</option>
-                        <option value="fr">Francese (FR)</option>
-                    </select>
-                </div>
-
-                <div class="w-full md:w-40">
-                    <label for="countrySelect" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Paese</label>
-                    <select id="countrySelect" class="material-input w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
-                        <option value="it">Italia (IT)</option>
-                        <option value="us">Stati Uniti (US)</option>
-                        <option value="uk">Regno Unito (UK)</option>
-                        <option value="es">Spagna (ES)</option>
-                    </select>
-                </div>
-
-                <button type="submit" class="w-full md:w-auto px-6 py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition shadow-md hover:shadow-lg flex items-center justify-center gap-2">
-                    <span id="btnText">Genera Idee</span>
-                    <div id="loadingSpinner" class="spinner"></div>
+                <button onclick="generateSnippet()" class="w-full flex items-center justify-center gap-2 bg-slate-900 dark:bg-primary-600 hover:bg-slate-800 text-white px-6 py-4 rounded-2xl font-bold shadow-lg active:scale-95 transition-transform text-lg">
+                    <i data-lucide="code-2" class="w-6 h-6"></i> Genera Codice HTML
                 </button>
             </div>
-            
-            <!-- Opzione Estrazione Profonda -->
-            <div class="mt-4 flex items-center gap-2">
-                <input type="checkbox" id="deepModeCheck" class="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500 cursor-pointer">
-                <label for="deepModeCheck" class="text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
-                    <strong>Estrazione Profonda</strong> (Include A-Z, Domande: Come, Quando, Perché e Preposizioni: Vs, Tra, Per... <em>Richiede ~20 sec</em>)
-                </label>
-            </div>
-        </form>
-    </div>
 
-    <!-- Mobile Controls -->
-        <div class="flex md:hidden gap-4">
-            <button id="exportBtnMobile" class="flex-1 flex items-center justify-center gap-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 py-2 rounded-lg transition">
-                <span class="material-symbols-outlined text-sm">download</span> Esporta JSON
-            </button>
-            <label class="flex-1 flex items-center justify-center gap-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 py-2 rounded-lg transition cursor-pointer">
-                <span class="material-symbols-outlined text-sm">upload</span> Importa JSON
-                <input type="file" id="importFileMobile" accept=".json" class="hidden">
-            </label>
+            <div class="lg:col-span-7 bg-white dark:bg-surface-dark rounded-3xl shadow-soft border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden h-[800px]">
+                <div class="flex justify-between items-center px-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+                    <div class="flex">
+                        <button onclick="switchChartOutput('preview')" id="out-preview" class="tab-btn active px-4 py-4 text-sm flex items-center gap-2"><i data-lucide="eye" class="w-4 h-4"></i> Anteprima Live</button>
+                        <button onclick="switchChartOutput('code')" id="out-code" class="tab-btn px-4 py-4 text-sm flex items-center gap-2"><i data-lucide="file-code" class="w-4 h-4"></i> Codice HTML</button>
+                    </div>
+                    <button onclick="copyGeneratedCode('code-output')" class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-bold hover:bg-slate-300 transition-colors">
+                        <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copia
+                    </button>
+                </div>
+
+                <div id="view-preview" class="flex-grow p-4 bg-[#f8fafc] dark:bg-[#0f172a] relative">
+                    <div class="absolute inset-0 m-4 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl overflow-hidden bg-white dark:bg-slate-900">
+                        <iframe id="preview-frame" class="w-full h-full border-0"></iframe>
+                    </div>
+                </div>
+
+                <div id="view-code" class="hidden flex-grow relative bg-slate-900">
+                    <textarea id="code-output" readonly class="absolute inset-0 w-full h-full p-6 bg-transparent text-slate-300 font-mono text-sm resize-none outline-none custom-scrollbar" spellcheck="false"></textarea>
+                </div>
+            </div>
         </div>
 
-        <!-- Data Table -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl material-shadow overflow-hidden flex-grow flex flex-col">
-            <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50">
-                <h2 class="text-lg font-medium">Risultati</h2>
-                <span id="resultCount" class="text-sm text-gray-500 dark:text-gray-400">0 parole trovate</span>
-            </div>
+        <div id="wrapper-infographics" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-8 h-full">
             
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr class="bg-gray-100 dark:bg-gray-700/50 text-gray-600 dark:text-gray-300 text-sm uppercase tracking-wider">
-                            <th class="px-6 py-4 font-medium border-b dark:border-gray-700">Parola Chiave</th>
-                            <th class="px-6 py-4 font-medium border-b dark:border-gray-700 text-center">Tipologia</th>
-                            <th class="px-6 py-4 font-medium border-b dark:border-gray-700 text-right">Volume</th>
-                            <th class="px-6 py-4 font-medium border-b dark:border-gray-700 text-right">CPC St.</th>
-                            <th class="px-6 py-4 font-medium border-b dark:border-gray-700 text-center">Difficoltà</th>
-                        </tr>
-                    </thead>
-                    <tbody id="resultsBody" class="divide-y divide-gray-200 dark:divide-gray-700 text-gray-800 dark:text-gray-200">
-                        <tr id="emptyState">
-                            <td colspan="5" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
-                                <span class="material-symbols-outlined text-4xl mb-2 opacity-50">magic_button</span>
-                                <p>Inserisci un concetto (es. "assicurazione auto" o "edicola online") per scovare le migliori parole chiave.</p>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+            <div class="lg:col-span-5 flex flex-col gap-6">
+                
+                <div class="bg-gradient-to-br from-fuchsia-600 to-purple-700 rounded-3xl p-6 text-white shadow-lg relative overflow-hidden">
+                    <div class="absolute -right-6 -top-6 opacity-20"><i data-lucide="wand-2" class="w-32 h-32"></i></div>
+                    <h2 class="text-xl font-bold mb-2 relative z-10">Prompt Studio per Immagini</h2>
+                    <p class="text-sm opacity-90 relative z-10">Inserisci i dati della tua infografica. L'IA genererà un "Super Prompt" ottimizzato da incollare in Midjourney, DALL-E 3 o Leonardo AI per creare l'immagine finale.</p>
+                </div>
+
+                <div class="bg-white dark:bg-surface-dark rounded-3xl shadow-soft border border-slate-200 dark:border-slate-800 p-6 flex flex-col gap-5">
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 mb-1">Formato (Aspect Ratio)</label>
+                            <select id="info-format" class="w-full bg-slate-50 dark:bg-surface-darker border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 outline-none">
+                                <option value="16:9">Orizzontale (16:9)</option>
+                                <option value="9:16">Verticale Storie (9:16)</option>
+                                <option value="4:5">Verticale Social (4:5)</option>
+                                <option value="1:1">Quadrato (1:1)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 mb-1">Stile Visivo</label>
+                            <select id="info-style" class="w-full bg-slate-50 dark:bg-surface-darker border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 outline-none">
+                                <option value="Modern minimalist, flat vector design, clean lines">Minimal & Flat</option>
+                                <option value="3D isometric render, octane render, soft clay style, soft studio lighting">3D Isometrico / Clay</option>
+                                <option value="Corporate business style, highly professional, data visualization focus">Corporate & Dati</option>
+                                <option value="Cyberpunk aesthetic, neon outlines, futuristic HUD elements, dark background">Cyberpunk / Neon</option>
+                                <option value="Hand-drawn sketch style, notebook paper background, ink outlines">Disegno a mano / Sketch</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1">Palette Colori Infografica</label>
+                        <select id="info-palette" onchange="handleInfoPaletteChange()" class="w-full bg-slate-50 dark:bg-surface-darker border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 outline-none mb-2">
+                            <option value="Blues, teals, and clean whites">Modern (Azzurri/Bianco)</option>
+                            <option value="Warm sunset colors, oranges, yellows, subtle reds">Sunset (Arancio/Giallo)</option>
+                            <option value="Monochromatic grays with striking accent color">Monocromatico + Accento</option>
+                            <option value="custom">✨ Palette HEX Personalizzata</option>
+                        </select>
+                        <input type="text" id="info-palette-custom" class="hidden w-full bg-slate-50 dark:bg-surface-darker border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm font-mono text-xs focus:ring-2 focus:ring-purple-500 outline-none" placeholder="Es: #ff0000, #00ff00...">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1">Titolo Principale (Opzionale)</label>
+                        <input type="text" id="info-title" class="w-full bg-slate-50 dark:bg-surface-darker border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 outline-none" placeholder="Es: Evoluzione dell'IA nel 2026">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1">Testo e Dati da Includere</label>
+                        <textarea id="info-content" rows="6" class="w-full bg-slate-50 dark:bg-surface-darker border border-slate-200 dark:border-slate-700 rounded-xl p-3 focus:ring-2 focus:ring-purple-500 outline-none text-sm text-slate-700 dark:text-slate-300 resize-y" placeholder="Descrivi in modo discorsivo o a punti i dati e le informazioni che l'infografica deve mostrare..."></textarea>
+                    </div>
+
+                </div>
+
+                <button onclick="generateInfographicPrompt()" id="generate-info-btn" class="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-fuchsia-600 hover:from-purple-700 hover:to-fuchsia-700 text-white px-6 py-4 rounded-2xl font-bold shadow-lg active:scale-95 transition-transform text-lg">
+                    <i data-lucide="bot" class="w-6 h-6"></i> Genera Super Prompt
+                    <div id="info-loader" class="loader-ring hidden ml-2"></div>
+                </button>
             </div>
+
+            <div class="lg:col-span-7 bg-white dark:bg-surface-dark rounded-3xl shadow-soft border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden h-[800px]">
+                <div class="flex justify-between items-center px-4 py-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+                    <h3 class="font-bold text-slate-700 dark:text-slate-200 flex items-center gap-2">
+                        <i data-lucide="terminal" class="w-5 h-5 text-purple-500"></i> Prompt Generato (Inglese)
+                    </h3>
+                    <button onclick="copyGeneratedCode('info-prompt-output')" class="flex items-center gap-1.5 px-4 py-2 bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 rounded-xl text-sm font-bold hover:bg-purple-200 transition-colors shadow-sm">
+                        <i data-lucide="copy" class="w-4 h-4"></i> Copia Prompt
+                    </button>
+                </div>
+
+                <div class="flex-grow relative bg-slate-900 p-6 flex flex-col">
+                    <p class="text-xs text-slate-400 mb-4 font-mono">Copia il testo sottostante e incollalo nel tuo generatore di immagini preferito (DALL-E 3 è consigliato per l'accuratezza del testo, Midjourney v6 per la resa estetica).</p>
+                    <textarea id="info-prompt-output" readonly class="flex-grow w-full bg-slate-800/50 border border-slate-700 rounded-xl p-5 text-[#a7f3d0] font-mono text-base resize-none outline-none custom-scrollbar leading-relaxed" spellcheck="false" placeholder="Il prompt apparirà qui..."></textarea>
+                </div>
+            </div>
+
         </div>
 
     </main>
 
     <script>
-        const apiKey = ""; // La chiave API viene iniettata automaticamente dall'ambiente
+        lucide.createIcons();
+        const apiKey = ""; // API Key fornita dall'ambiente
 
-        // --- TEMA ---
-        const htmlEl = document.documentElement;
-        const themeToggle = document.getElementById('themeToggle');
-        const themeIcon = document.getElementById('themeIcon');
-
-        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-            htmlEl.classList.add('dark'); themeIcon.textContent = 'light_mode';
-        } else {
-            htmlEl.classList.remove('dark'); themeIcon.textContent = 'dark_mode';
-        }
-
-        themeToggle.addEventListener('click', () => {
-            htmlEl.classList.toggle('dark');
-            if (htmlEl.classList.contains('dark')) {
-                localStorage.theme = 'dark'; themeIcon.textContent = 'light_mode';
+        // --- SISTEMA DI NAVIGAZIONE PRINCIPALE ---
+        function switchMode(mode) {
+            // Aggiorna bottoni Desktop
+            document.getElementById('mode-charts-btn').classList.toggle('active', mode === 'charts');
+            document.getElementById('mode-info-btn').classList.toggle('active', mode === 'infographics');
+            // Aggiorna bottoni Mobile
+            const mobCharts = document.getElementById('mode-charts-btn-mob');
+            const mobInfo = document.getElementById('mode-info-btn-mob');
+            if(mode === 'charts') {
+                mobCharts.className = "flex-1 py-3 text-sm font-bold text-primary-600 border-b-2 border-primary-600";
+                mobInfo.className = "flex-1 py-3 text-sm font-bold text-slate-500 border-b-2 border-transparent";
             } else {
-                localStorage.theme = 'light'; themeIcon.textContent = 'dark_mode';
+                mobInfo.className = "flex-1 py-3 text-sm font-bold text-purple-600 border-b-2 border-purple-600";
+                mobCharts.className = "flex-1 py-3 text-sm font-bold text-slate-500 border-b-2 border-transparent";
             }
-        });
-
-        // --- FETCH CON BACKOFF (Anti-Rate Limit) ---
-        async function fetchWithBackoff(url, options, retries = 5) {
-            const delays = [1000, 2000, 4000, 8000, 16000];
-            for (let i = 0; i < retries; i++) {
-                try {
-                    const response = await fetch(url, options);
-                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                    return await response.json();
-                } catch (err) {
-                    if (i === retries - 1) throw err;
-                    await new Promise(res => setTimeout(res, delays[i]));
-                }
-            }
+            // Mostra/Nascondi Wrapper
+            document.getElementById('wrapper-charts').style.display = mode === 'charts' ? 'grid' : 'none';
+            document.getElementById('wrapper-infographics').style.display = mode === 'infographics' ? 'grid' : 'none';
         }
 
-        // --- METRICHE SIMULATE (Algoritmo di Precisione Realistica) ---
-        function generateSimulatedMetrics(keyword) {
-            let hash = 0;
-            for (let i = 0; i < keyword.length; i++) {
-                hash = ((hash << 5) - hash) + keyword.charCodeAt(i);
-                hash |= 0;
-            }
-            hash = Math.abs(hash);
-
-            // Contiamo le parole: le long tail hanno volumi più bassi
-            const wordsCount = keyword.trim().split(/\s+/).length;
-            
-            // Volumi drasticamente ridotti per maggiore realismo
-            let baseMin, baseMax;
-            if (wordsCount === 1) { baseMin = 1200; baseMax = 35000; }
-            else if (wordsCount === 2) { baseMin = 300; baseMax = 6500; }
-            else if (wordsCount === 3) { baseMin = 50; baseMax = 800; }
-            else if (wordsCount === 4) { baseMin = 10; baseMax = 150; }
-            else { baseMin = 0; baseMax = 40; }
-
-            // Generiamo un numero deterministico all'interno del range
-            let rawVolume = baseMin + (hash % (baseMax - baseMin));
-
-            // Arrotondamento organico (come in strumenti reali)
-            let volume;
-            if (rawVolume > 10000) volume = Math.round(rawVolume / 100) * 100;
-            else if (rawVolume > 1000) volume = Math.round(rawVolume / 10) * 10;
-            else volume = Math.round(rawVolume / 10) * 10;
-
-            if (volume <= 0) volume = 10; // Volume minimo garantito
-
-            // CPC deterministico (le long tail specifiche costano proporzionalmente meno)
-            const cpcRaw = ((hash % 1200) / 100 + 0.05);
-            const cpc = (cpcRaw / Math.max(1, (wordsCount * 0.7))).toFixed(2);
-            
-            // Difficoltà deterministica calcolata su 100 (lunghezza maggiore = meno difficile)
-            let difficultyScore = Math.max(1, Math.min(99, (hash % 100) - (wordsCount * 6) + 20));
-            
-            let diffLabel, diffClass;
-            if (difficultyScore <= 33) {
-                diffLabel = `Bassa (${difficultyScore}/100)`;
-                diffClass = "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400";
-            } else if (difficultyScore <= 66) {
-                diffLabel = `Media (${difficultyScore}/100)`;
-                diffClass = "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400";
-            } else {
-                diffLabel = `Alta (${difficultyScore}/100)`;
-                diffClass = "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400";
-            }
-
-            return {
-                volume: volume.toLocaleString('it-IT'),
-                numericVolume: volume,
-                cpc: `€ ${cpc}`,
-                difficulty: diffLabel,
-                difficultyClass: diffClass
-            };
+        // --- UTILS COMUNI ---
+        function toggleTheme() {
+            document.documentElement.classList.toggle('dark');
+            if(document.getElementById('wrapper-charts').style.display !== 'none') generateSnippet();
         }
 
-        // --- MOTORI DI RICERCA DATI ---
-
-        // 1. Google Autocomplete (Alphabet Soup ESTESO: Prefissi, Suffissi, Domande)
-        async function getAutocompleteKeywords(seed, lang, country, isDeep) {
-            let queries = [seed];
-            
-            if (isDeep) {
-                const alphabet = 'abcdefghijklmnopqrstuvwxyz'.split('');
-                const questionsIT = ['come', 'cosa', 'dove', 'quando', 'perché', 'chi', 'quale', 'miglior'];
-                const questionsEN = ['how', 'what', 'where', 'when', 'why', 'who', 'which', 'best'];
-                const prepIT = ['tra', 'per', 'con', 'vs', 'senza', 'di', 'a', 'da'];
-                const prepEN = ['between', 'for', 'with', 'vs', 'without', 'of', 'to', 'from'];
-                
-                const questions = (lang === 'it') ? questionsIT : questionsEN;
-                const prepositions = (lang === 'it') ? prepIT : prepEN;
-
-                // Suffissi: "keyword a"
-                alphabet.forEach(letter => queries.push(`${seed} ${letter}`));
-                // Prefissi: "a keyword"
-                alphabet.forEach(letter => queries.push(`${letter} ${seed}`));
-                // Domande: "come keyword"
-                questions.forEach(q => queries.push(`${q} ${seed}`));
-                // Preposizioni (dopo): "keyword con", "keyword vs"
-                prepositions.forEach(p => queries.push(`${seed} ${p}`));
-                // Preposizioni (prima): "tra keyword", "per keyword"
-                prepositions.forEach(p => queries.push(`${p} ${seed}`));
-            }
-
-            let results = [];
-            
-            // Effettuiamo le chiamate a blocchi (batch)
-            const batchSize = isDeep ? 6 : 2; // Ridotto in modalità deep per non bloccare il proxy
-            for (let i = 0; i < queries.length; i += batchSize) {
-                const batch = queries.slice(i, i + batchSize);
-                const fetchPromises = batch.map(async (query) => {
-                    const encodedQuery = encodeURIComponent(query);
-                    const targetUrl = `http://suggestqueries.google.com/complete/search?client=firefox&hl=${lang}&gl=${country}&q=${encodedQuery}`;
-                    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
-
-                    try {
-                        const response = await fetch(proxyUrl);
-                        if (!response.ok) return;
-                        const data = await response.json();
-                        const parsed = JSON.parse(data.contents);
-                        if (parsed && parsed[1]) {
-                            parsed[1].forEach(kw => results.push({ keyword: kw.toLowerCase(), source: 'Autocompletamento' }));
-                        }
-                    } catch (e) { /* silenzioso se una singola query fallisce */ }
-                });
-                
-                await Promise.all(fetchPromises);
-                await new Promise(r => setTimeout(r, 200)); // Piccola pausa
-            }
-
-            return results;
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            const colors = type === 'error' ? 'bg-red-50 text-red-800 border-red-200' : 'bg-emerald-50 text-emerald-800 border-emerald-200';
+            toast.className = `flex items-center gap-3 px-4 py-3 rounded-2xl border ${colors} shadow-lg transition-all duration-300 translate-y-10 opacity-0 pointer-events-auto`;
+            toast.innerHTML = `<span class="font-bold text-sm">${message}</span>`;
+            container.appendChild(toast);
+            requestAnimationFrame(() => toast.classList.remove('translate-y-10', 'opacity-0'));
+            setTimeout(() => {
+                toast.classList.add('translate-y-10', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
         }
 
-        // 2. AI Semantica (Gemini) o Fallback su Datamuse
-        async function getSemanticKeywords(seed, lang, country) {
-            let results = [];
-            
+        async function copyGeneratedCode(elementId) {
+            const code = document.getElementById(elementId).value;
+            if (!code) return showToast("Nessun contenuto da copiare", "error");
             try {
-                if (apiKey !== undefined) {
-                    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
-                    const prompt = `Genera un elenco massiccio di almeno 50-80 parole chiave SEO correlate semanticamente a "${seed}" per lingua "${lang}" e paese "${country}". Includi sinonimi, varianti, intenti correlati, domande frequenti e concetti affini (es. per "edicola online" includi "edicola digitale", "giornali sul web", "leggere quotidiani tablet" ecc). Restituisci SOLO un array JSON di stringhe, senza nient'altro, no markdown.`;
-                    
-                    const data = await fetchWithBackoff(url, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            contents: [{ parts: [{ text: prompt }] }],
-                            generationConfig: {
-                                responseMimeType: "application/json",
-                                responseSchema: { type: "ARRAY", items: { type: "STRING" } }
-                            }
-                        })
-                    });
-                    
-                    if (data && data.candidates) {
-                        const words = JSON.parse(data.candidates[0].content.parts[0].text);
-                        words.forEach(w => results.push({ keyword: w.toLowerCase(), source: 'Correlata Semantica' }));
-                        return results;
-                    }
-                }
-            } catch (error) {
-                console.log("Fallback all'API semantica Datamuse...");
+                const ta = document.createElement('textarea');
+                ta.value = code; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+                showToast("Copiato negli appunti!", "success");
+            } catch (e) {
+                showToast("Errore durante la copia", "error");
             }
-
-            try {
-                let langParam = lang === 'it' ? '&v=it' : (lang === 'es' ? '&v=es' : ''); 
-                const res = await fetch(`https://api.datamuse.com/words?ml=${encodeURIComponent(seed)}${langParam}&max=80`);
-                const data = await res.json();
-                data.forEach(item => {
-                    results.push({ keyword: item.word.toLowerCase(), source: 'Correlata Semantica' });
-                });
-            } catch (error) {
-                console.error("Errore Datamuse:", error);
-            }
-
-            return results;
         }
 
-        // --- LOGICA PRINCIPALE ---
-        let currentData = [];
-        const searchForm = document.getElementById('searchForm');
-        const btnText = document.getElementById('btnText');
-        const loadingSpinner = document.getElementById('loadingSpinner');
-        const resultsBody = document.getElementById('resultsBody');
-        const resultCount = document.getElementById('resultCount');
-
-        function renderTable(data) {
-            resultsBody.innerHTML = '';
-            
-            if (data.length === 0) {
-                resultsBody.innerHTML = `<tr><td colspan="5" class="px-6 py-12 text-center text-gray-500">Nessun risultato trovato.</td></tr>`;
-                resultCount.textContent = '0 parole trovate';
-                return;
-            }
-
-            data.forEach(item => {
-                const tr = document.createElement('tr');
-                tr.className = "hover:bg-gray-50 dark:hover:bg-gray-700/50 transition duration-150";
-                
-                // Ricostruiamo classi colori se assenti dal JSON importato
-                let diffClass = item.difficultyClass;
-                if (!diffClass) {
-                     if(item.difficulty === 'Bassa') diffClass = "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400";
-                     else if(item.difficulty === 'Media') diffClass = "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400";
-                     else diffClass = "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400";
-                }
-
-                // Stile tipologia
-                const typeStyle = item.source === 'Correlata Semantica' 
-                    ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 border border-purple-200 dark:border-purple-700'
-                    : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 border border-blue-200 dark:border-blue-700';
-                
-                const typeIcon = item.source === 'Correlata Semantica' ? 'psychology' : 'keyboard';
-
-                tr.innerHTML = `
-                    <td class="px-6 py-4 border-b dark:border-gray-700 font-medium">${item.keyword}</td>
-                    <td class="px-6 py-4 border-b dark:border-gray-700 text-center">
-                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium ${typeStyle}">
-                            <span class="material-symbols-outlined text-[14px]">${typeIcon}</span>
-                            ${item.source}
-                        </span>
-                    </td>
-                    <td class="px-6 py-4 border-b dark:border-gray-700 text-right">${item.volume}</td>
-                    <td class="px-6 py-4 border-b dark:border-gray-700 text-right text-gray-600 dark:text-gray-400">${item.cpc}</td>
-                    <td class="px-6 py-4 border-b dark:border-gray-700 text-center">
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${diffClass}">
-                            ${item.difficulty}
-                        </span>
-                    </td>
-                `;
-                resultsBody.appendChild(tr);
+        async function callGemini(promptText) {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+            const res = await fetch(url, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
             });
-
-            resultCount.textContent = `${data.length} parole trovate`;
+            if (!res.ok) throw new Error("Errore API");
+            const data = await res.json();
+            return data.candidates[0].content.parts[0].text.trim();
         }
 
-        searchForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const keyword = document.getElementById('keywordInput').value.trim();
-            const lang = document.getElementById('langSelect').value;
-            const country = document.getElementById('countrySelect').value;
-            const isDeep = document.getElementById('deepModeCheck').checked;
-            if (!keyword) return;
+        // ==========================================
+        // LOGICA MODALITÀ 1: GRAFICI HTML
+        // ==========================================
+        const palettes = {
+            modern: ['#3b82f6', '#6366f1', '#8b5cf6', '#14b8a6', '#0ea5e9', '#4f46e5'],
+            sunset: ['#f97316', '#ef4444', '#f59e0b', '#ec4899', '#db2777', '#ea580c'],
+            emerald: ['#10b981', '#059669', '#34d399', '#047857', '#6ee7b7', '#065f46'],
+            pastel: ['#fca5a5', '#fcd34d', '#86efac', '#93c5fd', '#c4b5fd', '#f9a8d4'],
+            corporate: ['#1e293b', '#334155', '#0f172a', '#475569', '#64748b', '#94a3b8']
+        };
 
-            btnText.textContent = isDeep ? "Estrazione Profonda (20s)..." : "Analisi Veloce...";
-            loadingSpinner.style.display = "block";
-            searchForm.querySelector('button[type="submit"]').disabled = true;
+        const demoData = {
+            bar: "Mese,Vendite 2025,Vendite 2026\nGennaio,12000,15000\nFebbraio,19000,22000\nMarzo,15000,18000\nAprile,22000,26000\nMaggio,25000,29000",
+            scatter: "Dipendente,Anni di Esperienza,Stipendio(K)\nMario,2,25\nLuigi,5,35\nAnna,10,55\nGiulia,1,22\nMarco,15,75\nElena,8,45"
+        };
+
+        function switchChartTab(tab) {
+            document.getElementById('tab-data').classList.toggle('active', tab === 'data');
+            document.getElementById('tab-settings').classList.toggle('active', tab === 'settings');
+            document.getElementById('panel-data').style.display = tab === 'data' ? 'flex' : 'none';
+            document.getElementById('panel-settings').style.display = tab === 'settings' ? 'flex' : 'none';
+        }
+
+        function switchChartOutput(view) {
+            document.getElementById('out-preview').classList.toggle('active', view === 'preview');
+            document.getElementById('out-code').classList.toggle('active', view === 'code');
+            document.getElementById('view-preview').style.display = view === 'preview' ? 'block' : 'none';
+            document.getElementById('view-code').style.display = view === 'code' ? 'block' : 'none';
+        }
+
+        function loadDemo(type) {
+            document.getElementById('data-input').value = demoData[type];
+            document.getElementById('chart-type').value = type;
+            document.getElementById('chart-title').value = type === 'scatter' ? "Correlazione Esperienza / Stipendio" : "Andamento Vendite";
+            generateSnippet();
+        }
+
+        function handlePaletteChange() {
+            const isCustom = document.getElementById('chart-palette').value === 'custom';
+            document.getElementById('custom-palette-container').classList.toggle('hidden', !isCustom);
+            generateSnippet();
+        }
+
+        async function formatDataWithAI() {
+            const input = document.getElementById('data-input').value.trim();
+            if (!input) return showToast("Inserisci del testo", "error");
+            
+            const btn = document.getElementById('ai-format-btn');
+            const txt = document.getElementById('ai-format-text');
+            const ldr = document.getElementById('ai-loader');
+
+            btn.disabled = true; txt.textContent = "Elaborazione..."; ldr.classList.remove('hidden');
 
             try {
-                const [autoData, semanticData] = await Promise.all([
-                    getAutocompleteKeywords(keyword, lang, country, isDeep),
-                    getSemanticKeywords(keyword, lang, country)
-                ]);
-
-                const allResults = [...semanticData, ...autoData];
-                
-                const uniqueMap = new Map();
-                allResults.forEach(item => {
-                    if (!uniqueMap.has(item.keyword) || item.source === 'Correlata Semantica') {
-                        uniqueMap.set(item.keyword, item);
-                    }
-                });
-
-                currentData = Array.from(uniqueMap.values()).map(item => {
-                    const metrics = generateSimulatedMetrics(item.keyword);
-                    return {
-                        keyword: item.keyword,
-                        source: item.source,
-                        volume: metrics.volume,
-                        numericVolume: metrics.numericVolume,
-                        cpc: metrics.cpc,
-                        difficulty: metrics.difficulty,
-                        difficultyClass: metrics.difficultyClass
-                    };
-                });
-
-                // Ordina per Volume numerico decrescente per priorità
-                currentData.sort((a, b) => {
-                    return b.numericVolume - a.numericVolume;
-                });
-
-                renderTable(currentData);
+                const prompt = `Estrai i dati da questo testo e convertili ESATTAMENTE in formato CSV standard. Usa la virgola (,) come separatore. Prima riga = Header. NO markdown. Testo: "${input}"`;
+                let csvResponse = await callGemini(prompt);
+                csvResponse = csvResponse.replace(/```csv/i, '').replace(/```/g, '').trim();
+                document.getElementById('data-input').value = csvResponse;
+                showToast("Dati convertiti in CSV!", "success");
+                generateSnippet();
             } catch (err) {
-                console.error("Errore generico:", err);
-                alert("Si è verificato un errore. Riprova tra qualche istante.");
+                showToast("Errore durante l'elaborazione IA", "error");
             } finally {
-                btnText.textContent = "Genera Idee";
-                loadingSpinner.style.display = "none";
-                searchForm.querySelector('button[type="submit"]').disabled = false;
+                btn.disabled = false; txt.textContent = "Estrai Dati con IA"; ldr.classList.add('hidden');
             }
-        });
-
-        // --- IMPORT / EXPORT JSON ---
-        function handleExport() {
-            if (currentData.length === 0) return alert("Nessun dato da esportare.");
-            const blob = new Blob([JSON.stringify(currentData, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `keywords_${currentData[0]?.keyword.replace(/\s+/g, '_') || 'export'}.json`;
-            document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
         }
 
-        function handleImport(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(evt) {
-                try {
-                    const imported = JSON.parse(evt.target.result);
-                    if (Array.isArray(imported)) {
-                        currentData = imported; renderTable(currentData); e.target.value = ''; alert("Dati caricati!");
-                    }
-                } catch (err) {
-                    alert("Errore file JSON.");
+        function hexToRgba(hex, alpha) {
+            if (typeof hex !== 'string') return 'rgba(0,0,0,0.5)';
+            if (!hex.startsWith('#')) return hex;
+            let h = hex; if (h.length === 4) h = '#' + h[1]+h[1] + h[2]+h[2] + h[3]+h[3];
+            const r = parseInt(h.slice(1, 3), 16), g = parseInt(h.slice(3, 5), 16), b = parseInt(h.slice(5, 7), 16);
+            if (isNaN(r)) return hex;
+            return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+        }
+
+        function generateSnippet() {
+            const rawCsv = document.getElementById('data-input').value.trim();
+            if (!rawCsv) return;
+            const parsed = Papa.parse(rawCsv, { header: true, skipEmptyLines: true });
+            if (!parsed.data.length || parsed.meta.fields.length < 2) return;
+
+            const fields = parsed.meta.fields;
+            const type = document.getElementById('chart-type').value;
+            const title = document.getElementById('chart-title').value;
+            const subtitle = document.getElementById('chart-subtitle').value;
+            const paletteName = document.getElementById('chart-palette').value;
+            const fill = document.getElementById('chart-fill').checked;
+            const smooth = document.getElementById('chart-smooth').checked;
+            const isDarkMode = document.documentElement.classList.contains('dark');
+            
+            let colors = paletteName === 'custom' 
+                ? document.getElementById('custom-palette-input').value.split(',').map(c=>c.trim()).filter(c=>c)
+                : palettes[paletteName];
+            if(!colors || colors.length===0) colors = ['#3b82f6'];
+
+            let chartData = { labels: [], datasets: [] };
+
+            if (type === 'scatter') {
+                const xField = fields[1] || fields[0], yField = fields[2] || fields[1];
+                let scatterPoints = parsed.data.map(row => ({ x: parseFloat(row[xField]), y: parseFloat(row[yField]), _label: row[fields[0]] }));
+                chartData.datasets.push({ label: `${xField} vs ${yField}`, data: scatterPoints, backgroundColor: hexToRgba(colors[0], 0.6), borderColor: colors[0], borderWidth: 1, pointRadius: 6, pointHoverRadius: 8 });
+            } else {
+                chartData.labels = parsed.data.map(r => r[fields[0]]);
+                for (let i = 1; i < fields.length; i++) {
+                    const c = colors[(i - 1) % colors.length];
+                    const isPie = ['pie', 'doughnut', 'polarArea'].includes(type);
+                    chartData.datasets.push({
+                        label: fields[i],
+                        data: parsed.data.map(r => parseFloat(r[fields[i]]) || 0),
+                        backgroundColor: isPie ? colors.map(x => hexToRgba(x, 0.7)) : hexToRgba(c, fill ? 0.4 : 0.8),
+                        borderColor: isPie ? (isDarkMode ? '#1e293b' : '#ffffff') : c,
+                        borderWidth: 2, tension: smooth ? 0.4 : 0, fill: (type === 'line' || type === 'radar') ? fill : false
+                    });
                 }
-            };
-            reader.readAsText(file);
+            }
+
+            const uuid = 'ai_chart_' + Math.random().toString(36).substr(2, 9);
+            const bgColor = isDarkMode ? '#1e293b' : '#ffffff';
+            const textColor = isDarkMode ? '#f8fafc' : '#0f172a';
+            const gridColor = isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)';
+
+            const htmlSnippet = `
+<div id="wrapper-${uuid}" style="width: 100%; max-width: 900px; margin: 0 auto; padding: 24px; font-family: system-ui, -apple-system, sans-serif; background: ${bgColor}; border-radius: 16px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); border: 1px solid ${gridColor}; box-sizing: border-box;">
+    ${title ? `<h3 style="text-align: center; margin: 0 0 4px 0; color: ${textColor}; font-size: 1.25rem; font-weight: 700;">${title}</h3>` : ''}
+    ${subtitle ? `<p style="text-align: center; margin: 0 0 20px 0; color: #64748b; font-size: 0.875rem;">${subtitle}</p>` : ''}
+    <div style="position: relative; height: 50vh; min-height: 350px; width: 100%;"><canvas id="${uuid}"></canvas></div>
+</div>
+<script>
+(function() {
+    const data = ${JSON.stringify(chartData)}, type = '${type}', isDark = ${isDarkMode}, gridC = '${gridColor}', textC = '${textColor}';
+    function init() {
+        if (window['init_'+'${uuid}']) return; window['init_'+'${uuid}'] = true;
+        const ctx = document.getElementById('${uuid}').getContext('2d');
+        const opts = { responsive: true, maintainAspectRatio: false, animation: { duration: 1500, easing: 'easeOutQuart' }, plugins: { legend: { position: 'bottom', labels: { color: textC, font: {family: 'system-ui'} } } } };
+        if(!['pie','doughnut','polarArea','radar'].includes(type)) {
+            opts.scales = { x: { grid: { color: gridC }, ticks: { color: textC } }, y: { grid: { color: gridC }, ticks: { color: textC }, beginAtZero: true } };
+        } else if (type === 'radar') {
+            opts.scales = { r: { grid: { color: gridC }, pointLabels: { color: textC } } };
+        }
+        new Chart(ctx, { type: type, data: data, options: opts });
+    }
+    function load(cb) { if(typeof Chart!=='undefined') cb(); else { let s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/chart.js'; s.onload=cb; document.head.appendChild(s); } }
+    const w = document.getElementById('wrapper-${uuid}');
+    if('IntersectionObserver' in window) { let obs = new IntersectionObserver(e => { if(e[0].isIntersecting){ load(init); obs.disconnect(); } }); obs.observe(w); } else load(init);
+})();
+<\/script>`;
+            document.getElementById('code-output').value = htmlSnippet;
+            document.getElementById('preview-frame').srcdoc = htmlSnippet;
         }
 
-        document.getElementById('exportBtn').addEventListener('click', handleExport);
-        document.getElementById('exportBtnMobile').addEventListener('click', handleExport);
-        document.getElementById('importFile').addEventListener('change', handleImport);
-        document.getElementById('importFileMobile').addEventListener('change', handleImport);
+        // ==========================================
+        // LOGICA MODALITÀ 2: PROMPT INFOGRAFICHE AI
+        // ==========================================
+        function handleInfoPaletteChange() {
+            const isCustom = document.getElementById('info-palette').value === 'custom';
+            document.getElementById('info-palette-custom').classList.toggle('hidden', !isCustom);
+        }
 
+        async function generateInfographicPrompt() {
+            const format = document.getElementById('info-format').value;
+            const style = document.getElementById('info-style').value;
+            const paletteBase = document.getElementById('info-palette').value;
+            const palette = paletteBase === 'custom' ? document.getElementById('info-palette-custom').value : paletteBase;
+            const title = document.getElementById('info-title').value.trim();
+            const content = document.getElementById('info-content').value.trim();
+
+            if(!content) return showToast("Inserisci il contenuto dell'infografica", "error");
+
+            const btn = document.getElementById('generate-info-btn');
+            const ldr = document.getElementById('info-loader');
+            btn.disabled = true; ldr.classList.remove('hidden');
+
+            try {
+                const systemPrompt = `Sei un Prompt Engineer di altissimo livello specializzato in Midjourney v6 e DALL-E 3. Il tuo unico scopo è scrivere un prompt perfetto in INGLESE per generare un'infografica.
+Dati dell'utente:
+- Titolo: ${title || 'Nessun titolo specifico'}
+- Contenuto da rappresentare: ${content}
+- Stile visivo richiesto: ${style}
+- Colori richiesti: ${palette}
+- Aspect Ratio: --ar ${format}
+
+Regole per il prompt:
+1. Deve iniziare descrivendo l'immagine (es. "A highly detailed, professional infographic layout...")
+2. Specifica chiaramente lo stile e i colori.
+3. Se c'è un titolo, istruisci il modello a scriverlo in modo prominente: "Main bold typography reading: '${title}'".
+4. Descrivi gli elementi visivi che rappresentino il contenuto (es. "Data visualization elements including charts, nodes, and icons related to...").
+5. Richiedi "clean background", "high resolution", "vector-like precision".
+6. Alla fine, aggiungi esattamente il parametro dell'aspect ratio richiesto dall'utente (es. --ar 16:9).
+7. L'output DEVE ESSERE ESCLUSIVAMENTE IL TESTO DEL PROMPT IN INGLESE. Nessun commento, nessuna introduzione in italiano. Solo il prompt pronto al copia e incolla.`;
+
+                const promptFinale = await callGemini(systemPrompt);
+                document.getElementById('info-prompt-output').value = promptFinale;
+                showToast("Prompt generato con successo!", "success");
+
+            } catch(e) {
+                showToast("Errore durante la generazione del prompt", "error");
+            } finally {
+                btn.disabled = false; ldr.classList.add('hidden');
+            }
+        }
+
+        // Init
+        window.onload = () => { loadDemo('bar'); };
     </script>
 </body>
 </html>
